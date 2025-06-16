@@ -39,6 +39,11 @@ class Button:
 
 
     def onHover(self,event):
+        if event is None:
+            for button in Screen.currentScreen.allButtons:
+                button.curr_color = button.bg_color
+            return
+        
         if not self.active: return
 
         if self.rect.collidepoint(event.pos):
@@ -105,3 +110,61 @@ class Button:
     def onMouseMotion(event):
         for button in Screen.currentScreen.allButtons:
             button.onHover(event)
+
+class IconButton():
+    def __init__(self, icon_path, pos, screenPtr, visible = True, onClick=None):
+        self.icon = pygame.image.load(icon_path).convert_alpha()
+        self.saved_icon = self.icon.copy()
+        self.rect = pygame.Rect(pos, self.icon.get_size())
+        self.screenPtr = screenPtr
+        self.onClick = onClick
+        self.active = True  # Icon buttons are active by default
+        self.visible = visible  # Icon buttons are visible by default
+
+        if not hasattr(self.screenPtr, 'allIconButtons'):
+            self.screenPtr.allIconButtons = []
+        self.screenPtr.allIconButtons.append(self)  # Register this button with the screen
+
+        # Make the icon lighter on hover by creating a lighter surface
+        self.lighter_icon = self.icon.copy()
+        self.lighter_icon.fill((30, 30, 30, 0), special_flags=pygame.BLEND_RGBA_ADD)
+        self.icon_hover = self.lighter_icon
+
+    def onHover(self, event):
+        if self.rect.collidepoint(event.pos):
+            self.icon = self.icon_hover
+        else:
+            self.icon = self.saved_icon
+            
+    def draw(self, screen):
+        if not self.visible:
+            return
+        screen.blit(self.icon, self.rect.topleft)
+
+    def setVisible(self,state):
+        self.visible = state
+
+    @staticmethod
+    def onMouseButtonDown(event):
+        from photoScreen import PhotoScreen  # Import PhotoScreen to access its attributes
+        if Screen.currentScreen.name == "Photo" and not PhotoScreen.initialized:
+            return  # Do not handle clicks if PhotoScreen is not initialized
+        if not hasattr(Screen.currentScreen, 'allIconButtons'):
+            return
+        for iconButton in Screen.currentScreen.allIconButtons:
+            if iconButton.rect.collidepoint(event.pos):
+                if iconButton.onClick and iconButton.active and iconButton.visible:
+                    iconButton.onClick()
+                    IconButton.onMouseMotion(event)  # Update hover state after click
+                    return  # Exit after handling the first button clicked
+
+    @staticmethod
+    def onMouseMotion(event):
+        if event is None:
+            for iconButton in Screen.currentScreen.allIconButtons:
+                iconButton.icon = iconButton.saved_icon
+            return
+        if not hasattr(Screen.currentScreen, 'allIconButtons'):
+            return
+        for iconButton in Screen.currentScreen.allIconButtons:
+            iconButton.onHover(event)

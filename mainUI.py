@@ -1,6 +1,6 @@
 import pygame
 from screen import Screen
-from button import Button
+from button import Button, IconButton
 from numberPad import NumberPad
 from inputBox import InputBox
 from label import Label
@@ -15,6 +15,9 @@ class MainUI:
     renameBtn = None
     makePhotos = None
     ignitionBtn = None
+
+    photoNrLabel = None
+    checkBtn = None
 
     #### Initialize Screens and Buttons
     def initUI():
@@ -36,7 +39,7 @@ class MainUI:
         MainUI.removeBtn.onClick = lambda: UserContainer.removeUser(User.selectedUser)  # Remove selected user
         MainUI.renameBtn = Button("Rename User", (520, 240), (200, 50), mainScreen, active=False, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
         MainUI.makePhotos = Button("Make Photos", (520, 310), (200, 50), mainScreen, active=False, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
-        MainUI.makePhotos.onClick = lambda: Screen.setCurrentScreen("Photo")  # Switch to photo screen when clicked
+        MainUI.makePhotos.onClick = MainUI.makePhotoClickHandler()
         MainUI.ignitionBtn = Button("FaceIgnition", (280, 310), (210, 50), mainScreen, font_size=32, color=(255, 255, 255), bg_color=(255, 150, 79))
         
         # Init the user container
@@ -45,6 +48,16 @@ class MainUI:
 
         photoScreen = Screen("Photo", PhotoScreen.photoScreenUpdate)  # Placeholder for photo screen
         PhotoScreen.init()  # Initialize the photo screen (webcam, etc.)
+        MainUI.photoNrLabel = Label("Photos taken: 0", (10, 10), photoScreen, font_size=32, color=(255, 255, 255))  # Label to show number of photos taken
+        IconButton("res/camera.png", (600, 150), photoScreen, onClick=lambda: PhotoScreen.makePhoto())  # Camera icon button
+        cancelBtn = IconButton("res/cancel.png", (40, 150), photoScreen)  # Cancel button to return to main screen
+        cancelBtn.onClick = MainUI.makePhotoCancelHandler()  # Set the cancel button click handler
+        MainUI.checkBtn = IconButton("res/bifa.png", (320, 300), photoScreen, visible=False)  # Check button to confirm photo
+        MainUI.checkBtn.onClick = MainUI.makeCheckHandle()
+
+        trainScreen = Screen("Train", background_image=backgroundImage, updateFunction=None)
+        trainLabel = Label("Training",(0,0),trainScreen,font_size=64, color=(255,255,255))
+        trainLabel.moveToCenter()
 
         Screen.currentScreen = logoScreen
     
@@ -64,4 +77,23 @@ class MainUI:
         def handler():
             button.userButtonClick()
             MainUI.UpdateLeftButtons()
-        return handler 
+        return handler
+    
+    def makePhotoClickHandler():
+        def handler():
+            Screen.setCurrentScreen("Photo")
+            PhotoScreen.reset()
+        return handler
+    
+    def makePhotoCancelHandler():
+        def handler():
+            Screen.setCurrentScreen("Main")
+            PhotoScreen.initialized = False  # Reset the photo screen state
+            Button.onMouseMotion(None)  # Update hover state after click
+        return handler
+    
+    def makeCheckHandle():
+        def handler():
+            PhotoScreen.savePhotos()
+            Screen.setCurrentScreen("Train")
+        return handler

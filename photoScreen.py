@@ -6,11 +6,22 @@ class PhotoScreen:
     webcam_recorder = None
     noWebCamImage = None
     frame = None
+    photos = []  # List to store captured photos
+    initialized = False
 
     def init():
         PhotoScreen.webcam_recorder = cv2.VideoCapture(0)
         PhotoScreen.noWebCamImage = pygame.image.load("res/nowebcam.png").convert_alpha()  # Load no webcam image
 
+    @staticmethod
+    def reset():
+        PhotoScreen.photos = []  # Reset the list of photos
+        from mainUI import MainUI
+        MainUI.photoNrLabel.updateText("Photos taken: 0")  # Reset the photo count label
+        MainUI.checkBtn.setVisible(False)
+        from button import IconButton
+        IconButton.onMouseMotion(None)  # Update hover state after click
+    
     @staticmethod
     def photoScreenUpdate():
         # Ensure webcam is opened
@@ -58,3 +69,21 @@ class PhotoScreen:
             PhotoScreen.frame = None
 
         time.sleep(0.01)  # Sleep to reduce CPU usage
+        
+        if (PhotoScreen.initialized is False):
+            PhotoScreen.initialized = True
+    
+    @staticmethod
+    def makePhoto():
+        # Take the current frame and save it in a list, later used to save the photos
+        if PhotoScreen.frame is not None:
+            PhotoScreen.photos.append(PhotoScreen.frame)
+            from mainUI import MainUI
+            MainUI.photoNrLabel.updateText(f"Photos taken: {len(PhotoScreen.photos)}")
+            if (len(PhotoScreen.photos) >= 5):
+                MainUI.checkBtn.setVisible(True)
+
+    @staticmethod
+    def savePhotos():
+        from user import User
+        print(f"Photos of user {User.selectedUser.name} saved to drive.")

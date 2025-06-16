@@ -3,7 +3,7 @@ from sys import exit
 from os import chdir, path
 # Import necessary modules
 from screen import Screen
-from button import Button
+from button import Button, IconButton
 from benchmark import Benchmark
 from user import User
 from mainUI import MainUI
@@ -32,12 +32,14 @@ while True:
             exit()
         if event.type == pygame.MOUSEMOTION:
             Button.onMouseMotion(event)
+            IconButton.onMouseMotion(event)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_TAB:
                 Benchmark.handleTabPress()
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left mouse button
                 Button.onMouseButtonDown(event)
+                IconButton.onMouseButtonDown(event)
 
     #### Updates
     Screen.updateCurrentScreen()

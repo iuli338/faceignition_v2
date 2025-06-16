@@ -17,6 +17,13 @@ class Label:
 
         self.renderText()
 
+    def moveToCenter(self):
+        screen_size = pygame.display.get_surface().get_size()
+        screen_rect = pygame.Rect(0, 0, *screen_size)
+        self.text_rect = self.text_surface.get_rect(center=screen_rect.center)
+        self.shadow_rect = self.text_rect.move(2, 2)
+        self.pos = self.text_rect.topleft
+
     def renderText(self):
         shadow_offset = (2, 2)
         shadow_color = (30, 30, 30)
