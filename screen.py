@@ -1,6 +1,6 @@
-import pygame
 import time
 from user import UserContainer
+from photoScreen import PhotoScreen
 
 class Screen:
 
@@ -71,8 +71,22 @@ class Screen:
         for button in Screen.currentScreen.allButtons:
             button.draw(screen)
 
+        # Draw the user container if it exists and the current screen is the main screen
         if Screen.currentScreen.name == "Main":
            UserContainer.draw(screen)
+
+        # Draw the nowebcam image if the current screen is the photo screen
+        if Screen.currentScreen.name == "Photo":
+            if PhotoScreen.webcam_recorder is not None and PhotoScreen.webcam_recorder.isOpened():
+                if PhotoScreen.frame is not None:
+                    # If the webcam is available and there is a frame, draw the webcam frame
+                    screen.blit(PhotoScreen.frame, (0, 0))
+                else:
+                    # If the frame is not available, draw the no webcam image
+                    screen.blit(PhotoScreen.noWebCamImage, (0, 0))
+            else:
+                # If the webcam is not available, draw the no webcam image
+                screen.blit(PhotoScreen.noWebCamImage, (0, 0))
 
 #### Update function for the screens
 
@@ -94,6 +108,9 @@ def pinScreenUpdate():
     elif len(Screen.currentScreen.inputBox.text) == Screen.currentScreen.inputBox.maxChar:
         # If the PIN is incorrect, reset the input box
         Screen.currentScreen.inputBox.text = ""
+    pass
+
+def photoScreenUpdate():
     pass
 
 def mainScreenUpdate():
