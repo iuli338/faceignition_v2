@@ -1,6 +1,8 @@
 import cv2
 import pygame
 import time
+import os
+import shutil
 
 class PhotoScreen:
     webcam_recorder = None
@@ -86,4 +88,18 @@ class PhotoScreen:
     @staticmethod
     def savePhotos():
         from user import User
-        print(f"Photos of user {User.selectedUser.name} saved to drive.")
+        user_folder = os.path.join("dataset", User.selectedUser.name)
+
+        # If the folder exists, clear it
+        if os.path.exists(user_folder):
+            shutil.rmtree(user_folder)
+        os.makedirs(user_folder, exist_ok=True)
+
+        for idx, photo_surface in enumerate(PhotoScreen.photos, start=1):
+            # Convert pygame surface to numpy array and then to BGR for OpenCV
+            photo_array = pygame.surfarray.array3d(photo_surface).swapaxes(0, 1)
+            photo_bgr = cv2.cvtColor(photo_array, cv2.COLOR_RGB2BGR)
+            image_path = os.path.join(user_folder, f"image{idx}.jpg")
+            cv2.imwrite(image_path, photo_bgr)
+        
+        print(f"Photos of user {User.selectedUser.name} saved to dataset/{User.selectedUser.name}.")
