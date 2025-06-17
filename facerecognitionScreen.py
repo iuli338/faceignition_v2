@@ -194,15 +194,23 @@ class Facerecognition:
                 from screen import Screen
                 Screen.setCurrentScreen("Drive Safe")
                 Facerecognition.stopThreads()
+                Facerecognition.last_processed_frame = None
+                Facerecognition.processed_surface = None
                 Facerecognition.ActivateTimer = 0.0
+                Facerecognition.BlockTimer = 0.0
+                return
         elif any(name == "Unknown" for name in names) and len(names) > 0:
             Facerecognition.ActivateTimer = 0.0
             Facerecognition.BlockTimer += delta_time
             if Facerecognition.BlockTimer >= Facerecognition.timeToBlock:
                 from screen import Screen
-                Screen.setCurrentScreen("Main")
+                Screen.setCurrentScreen("Intruder")
                 Facerecognition.stopThreads()
+                Facerecognition.last_processed_frame = None
+                Facerecognition.processed_surface = None
+                Facerecognition.ActivateTimer = 0.0
                 Facerecognition.BlockTimer = 0.0
+                return
         else:
             Facerecognition.ActivateTimer = 0.0
             Facerecognition.BlockTimer = 0.0

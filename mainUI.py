@@ -67,9 +67,14 @@ class MainUI:
         faceRecScreen = Screen("FaceRec", updateFunction=Facerecognition.facerecognitionScreenUpdate)
 
         driveSafeScreen = Screen("Drive Safe",background_image=backgroundImage)
-        driveSafeLabel = Label("Drive Safe!", (0,0), driveSafeScreen, font_size=128, color=(255,255,255))
+        driveSafeLabel = Label("Drive Safe!", (0,0), driveSafeScreen, font_size=64, color=(255,255,255))
         driveSafeLabel.moveToCenter()
-        backToMainBtn = IconButton("res/sageata.png",(320,320),driveSafeScreen,onClick= lambda:Screen.setCurrentScreen("Main"))
+        backToMainBtn1 = IconButton("res/sageata.png",(320,320),driveSafeScreen,onClick= lambda:Screen.setCurrentScreen("Main"))
+
+        intruderScreen = Screen("Intruder",background_image=backgroundImage)
+        intruderLabel = Label("Intruder Alert!", (0,0), intruderScreen, font_size=64, color=(255,255,255))
+        intruderLabel.moveToCenter()
+        backToMainBtn = IconButton("res/sageata.png",(320,320),intruderScreen,onClick= lambda:Screen.setCurrentScreen("Main"))
 
         Screen.currentScreen = logoScreen
     
