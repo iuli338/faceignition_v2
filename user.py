@@ -1,5 +1,7 @@
 import pygame
 import json
+import os
+import shutil
 
 class UserState:
     NO_PHOTOS = 0
@@ -101,6 +103,11 @@ class UserContainer:
             userButton.draw(screen)
 
     @staticmethod
+    def reRenderButtons():
+        for userButton in UserContainer.allUserButtons:
+            userButton.renderText()
+
+    @staticmethod
     def addUserButton(user,screenPtr):
         if len(UserContainer.allUserButtons) < UserContainer.maxUsers:
             from button import Button
@@ -115,8 +122,19 @@ class UserContainer:
                 MainUI.addBtn.setActive(True)
     
     @staticmethod
+    def generateName():
+        existing_names = {user.name for user in User.allUsers}
+        
+        i = 1
+        while True:
+            candidate = f"New User {i}"
+            if candidate not in existing_names:
+                return candidate
+            i += 1
+
+    @staticmethod
     def addUser():
-        name = "New User"  # Placeholder for user name, this should be replaced with actual input logic
+        name = UserContainer.generateName()
         from screen import Screen
         if len(User.allUsers) < UserContainer.maxUsers:
             new_user = User(name)
@@ -134,6 +152,11 @@ class UserContainer:
                 Screen.currentScreen.allButtons.remove(userButton.button)
                 UserContainer.allUserButtons.remove(userButton)
                 User.allUsers.remove(userButton.user)
+                # Remove images from dataset
+                user_folder = os.path.join("dataset", User.selectedUser.name)
+                # If the folder exists, clear it
+                if os.path.exists(user_folder):
+                    shutil.rmtree(user_folder)
                 User.selectedUser = None
                 MainUI.UpdateLeftButtons()
                 print(f"User '{user.name}' removed.")
@@ -145,6 +168,8 @@ class UserContainer:
                     userButton.renderText()
                 from button import Button
                 Button.userButtonUpdateColor()
+                Screen.setCurrentScreen("Train")
+                User.saveUsers()
                 return
         print(f"User '{user.name}' not found.")
 

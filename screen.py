@@ -88,6 +88,11 @@ class Screen:
         if Screen.currentScreen.name == "Main":
            UserContainer.draw(screen)
 
+        # Special draw for FaceRec screen
+        if Screen.currentScreen.name == "FaceRec":
+            from facerecognitionScreen import Facerecognition
+            Facerecognition.facerecognitionDraw(screen)
+
         if hasattr(Screen.currentScreen, 'allIconButtons'):
             for iconButton in Screen.currentScreen.allIconButtons:
                 iconButton.draw(screen)

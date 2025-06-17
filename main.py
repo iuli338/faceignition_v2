@@ -7,6 +7,7 @@ from button import Button, IconButton
 from benchmark import Benchmark
 from user import User
 from mainUI import MainUI
+from facerecognitionScreen import Facerecognition
 
 # Change the working directory to the script's directory
 chdir(path.dirname(path.abspath(__file__)))
@@ -14,7 +15,10 @@ chdir(path.dirname(path.abspath(__file__)))
 #### Initialize Pygame and Benchmark
 pygame.init()
 Benchmark.init()
-screen = pygame.display.set_mode((800, 480))
+
+class pygameScreen:
+    screen = pygame.display.set_mode((800, 480))
+
 pygame.display.set_caption("FaceIgnition")
 clock = pygame.time.Clock()
 Benchmark.CLOCK = clock
@@ -27,6 +31,7 @@ while True:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            Facerecognition.stopThreads()
             User.saveUsers()  # Save users before quitting
             pygame.quit()
             exit()
@@ -45,13 +50,13 @@ while True:
     Screen.updateCurrentScreen()
 
     #### Draw everything
-    screen.fill((40, 40, 40))
+    pygameScreen.screen.fill((40, 40, 40))
 
-    Screen.drawCurrentScreen(screen)
+    Screen.drawCurrentScreen(pygameScreen.screen)
 
     #### Benchmark
     Benchmark.update()
-    Benchmark.draw(screen)
+    Benchmark.draw(pygameScreen.screen)
 
     #### Flip and tick
     pygame.display.flip()

@@ -5,8 +5,10 @@ from numberPad import NumberPad
 from inputBox import InputBox
 from label import Label
 from screen import logoScreenUpdate, pinScreenUpdate, mainScreenUpdate
+from training import Training
 from user import User, UserState, UserContainer
 from photoScreen import PhotoScreen
+from facerecognitionScreen import Facerecognition
 
 class MainUI:
 
@@ -17,6 +19,7 @@ class MainUI:
     ignitionBtn = None
 
     photoNrLabel = None
+    photoSubj = None
     checkBtn = None
 
     #### Initialize Screens and Buttons
@@ -41,6 +44,7 @@ class MainUI:
         MainUI.makePhotos = Button("Make Photos", (520, 310), (200, 50), mainScreen, active=False, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
         MainUI.makePhotos.onClick = MainUI.makePhotoClickHandler()
         MainUI.ignitionBtn = Button("FaceIgnition", (280, 310), (210, 50), mainScreen, font_size=32, color=(255, 255, 255), bg_color=(255, 150, 79))
+        MainUI.ignitionBtn.onClick = MainUI.makeFaceIgnitionHandler()
         
         # Init the user container
         for user in User.allUsers:
@@ -48,16 +52,24 @@ class MainUI:
 
         photoScreen = Screen("Photo", PhotoScreen.photoScreenUpdate)  # Placeholder for photo screen
         PhotoScreen.init()  # Initialize the photo screen (webcam, etc.)
-        MainUI.photoNrLabel = Label("Photos taken: 0", (10, 10), photoScreen, font_size=32, color=(255, 255, 255))  # Label to show number of photos taken
+        MainUI.photoSubj = Label("Making photos for: ", (10, 10), photoScreen, font_size=32, color=(239,81,130)) # Label to show the name of the subject user
+        MainUI.photoNrLabel = Label("Photos taken: 0", (10, 40), photoScreen, font_size=32, color=(239,81,130)) # Label to show number of photos taken
         IconButton("res/camera.png", (600, 150), photoScreen, onClick=lambda: PhotoScreen.makePhoto())  # Camera icon button
-        cancelBtn = IconButton("res/cancel.png", (40, 150), photoScreen)  # Cancel button to return to main screen
+        cancelBtn = IconButton("res/cancel.png", (20, 150), photoScreen)  # Cancel button to return to main screen
         cancelBtn.onClick = MainUI.makePhotoCancelHandler()  # Set the cancel button click handler
         MainUI.checkBtn = IconButton("res/bifa.png", (320, 300), photoScreen, visible=False)  # Check button to confirm photo
-        MainUI.checkBtn.onClick = MainUI.makeCheckHandle()
+        MainUI.checkBtn.onClick = MainUI.makeCheckHandler()
 
-        trainScreen = Screen("Train", background_image=backgroundImage, updateFunction=None)
+        trainScreen = Screen("Train", background_image=backgroundImage, updateFunction=Training.trainingScreenUpdate)
         trainLabel = Label("Training",(0,0),trainScreen,font_size=64, color=(255,255,255))
         trainLabel.moveToCenter()
+
+        faceRecScreen = Screen("FaceRec", updateFunction=Facerecognition.facerecognitionScreenUpdate)
+
+        driveSafeScreen = Screen("Drive Safe",background_image=backgroundImage)
+        driveSafeLabel = Label("Drive Safe!", (0,0), driveSafeScreen, font_size=128, color=(255,255,255))
+        driveSafeLabel.moveToCenter()
+        backToMainBtn = IconButton("res/sageata.png",(320,320),driveSafeScreen,onClick= lambda:Screen.setCurrentScreen("Main"))
 
         Screen.currentScreen = logoScreen
     
@@ -70,8 +82,7 @@ class MainUI:
         else:
             MainUI.removeBtn.setActive(True)
             MainUI.renameBtn.setActive(True)
-            if User.selectedUser.state == UserState.NO_PHOTOS:
-                MainUI.makePhotos.setActive(True)
+            MainUI.makePhotos.setActive(True)
 
     def makeUserClickHandler(button):
         def handler():
@@ -92,8 +103,15 @@ class MainUI:
             Button.onMouseMotion(None)  # Update hover state after click
         return handler
     
-    def makeCheckHandle():
+    def makeCheckHandler():
         def handler():
             PhotoScreen.savePhotos()
             Screen.setCurrentScreen("Train")
         return handler
+    
+    def makeFaceIgnitionHandler():
+        def handler():
+            Screen.setCurrentScreen("FaceRec")
+            Facerecognition.init()
+        return handler
+

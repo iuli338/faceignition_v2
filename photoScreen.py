@@ -19,7 +19,9 @@ class PhotoScreen:
     def reset():
         PhotoScreen.photos = []  # Reset the list of photos
         from mainUI import MainUI
+        from user import User
         MainUI.photoNrLabel.updateText("Photos taken: 0")  # Reset the photo count label
+        MainUI.photoSubj.updateText(f"Making photos for: {User.selectedUser.name}")
         MainUI.checkBtn.setVisible(False)
         from button import IconButton
         IconButton.onMouseMotion(None)  # Update hover state after click
