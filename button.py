@@ -24,6 +24,7 @@ class Button:
         if not active:
             self.setActive(active)
         self.screenPtr.allButtons.append(self)  # Register this button with the screen
+        self.visible = True
 
     ####
 
@@ -39,6 +40,8 @@ class Button:
 
 
     def onHover(self,event):
+        if not self.visible:
+            return
         if event is None:
             for button in Screen.currentScreen.allButtons:
                 button.curr_color = button.bg_color
@@ -56,6 +59,8 @@ class Button:
         self.text_rect = self.text_surface.get_rect(center=self.rect.center)
 
     def draw(self, screen):
+        if not self.visible:
+            return
         # Draw shadow
         shadow_offset = (4, 4)
         shadow_color = (30, 30, 30)
@@ -101,7 +106,7 @@ class Button:
     def onMouseButtonDown(event):
         for button in Screen.currentScreen.allButtons:
             if button.rect.collidepoint(event.pos):
-                if button.onClick and button.active:
+                if button.onClick and button.active and button.visible:
                     button.onClick()
                     Button.onMouseMotion(event)  # Update hover state after click
                     return  # Exit after handling the first button clicked

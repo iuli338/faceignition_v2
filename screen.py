@@ -72,16 +72,26 @@ class Screen:
                 screen.blit(PhotoScreen.noWebCamImage, (0, 0))
 
         # Draw the input box if it exists
-        if hasattr(Screen.currentScreen, 'inputBox'):
-            Screen.currentScreen.inputBox.draw(screen)
+        if hasattr(Screen.currentScreen, 'allInputs'):
+            from mainUI import MainUI
+            for inputBox in Screen.currentScreen.allInputs:
+                if inputBox == MainUI.oldNameInput or inputBox == MainUI.newNameInput:
+                    continue
+                inputBox.draw(screen)
 
         # Draw label if it exists
         if hasattr(Screen.currentScreen, 'allLabels'):
+            from mainUI import MainUI
             for label in Screen.currentScreen.allLabels:
+                if label == MainUI.oldNameLabel or label == MainUI.newNameLabel:
+                    continue
                 label.draw(screen)
 
         # Draw all buttons on the current screen
         for button in Screen.currentScreen.allButtons:
+            from mainUI import MainUI
+            if button in MainUI.keyBoard.buttons:
+                continue
             button.draw(screen)
 
         # Draw the user container if it exists and the current screen is the main screen
@@ -97,6 +107,10 @@ class Screen:
             for iconButton in Screen.currentScreen.allIconButtons:
                 iconButton.draw(screen)
 
+        # Draw keyboard
+        if hasattr(Screen.currentScreen, 'keyBoard'):
+            Screen.currentScreen.keyBoard.draw(screen)
+
 #### Update function for the screens
 
 def logoScreenUpdate():
@@ -111,12 +125,13 @@ def logoScreenUpdate():
 PASS = "1234" # Placeholder for the PIN
 
 def pinScreenUpdate():
-    if Screen.currentScreen.inputBox.text == PASS:
+    from mainUI import MainUI
+    if MainUI.pinInput.text == PASS:
         # If the PIN is correct, switch to the main screen
         Screen.setCurrentScreen("Main")
-    elif len(Screen.currentScreen.inputBox.text) == Screen.currentScreen.inputBox.maxChar:
+    elif len(MainUI.pinInput.text) == MainUI.pinInput.maxChar:
         # If the PIN is incorrect, reset the input box
-        Screen.currentScreen.inputBox.text = ""
+        MainUI.pinInput.text = ""
     pass
 
 def photoScreenUpdate():

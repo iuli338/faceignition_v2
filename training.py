@@ -63,6 +63,8 @@ class Training:
                         pickle.dump({"encodings": knownEncodings, "names": knownNames}, f)
                     print("[INFO] Training complete.")
                 else:
+                    from user import User
+                    User.removePhotos()
                     print("[WARNING] No encodings were found. Check your dataset images.")
             # End of training
             from screen import Screen

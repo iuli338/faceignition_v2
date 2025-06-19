@@ -1,11 +1,12 @@
 import pygame
 
 class Label:
-    def __init__(self, text, pos, screenPtr, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80)):
+    def __init__(self, text, pos, screenPtr, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80), visible=True):
         self.text = text
         self.pos = pos
         self.font_size = font_size
         self.color = color
+        self.visible = visible
         self.bg_color = bg_color
         self.font = pygame.font.SysFont(None, self.font_size)
         self.screenPtr = screenPtr
@@ -24,6 +25,9 @@ class Label:
         self.shadow_rect = self.text_rect.move(2, 2)
         self.pos = self.text_rect.topleft
 
+    def setVisible(self,visible):
+        self.visible = visible
+
     def renderText(self):
         shadow_offset = (2, 2)
         shadow_color = (30, 30, 30)
@@ -33,6 +37,8 @@ class Label:
         self.shadow_rect = self.text_rect.move(shadow_offset)
 
     def draw(self, screen):
+        if not self.visible:
+            return
         # Draw shadow
         screen.blit(self.shadow_surface, self.shadow_rect)
         # Draw text

@@ -62,8 +62,9 @@ class NumberPad:
         self.buttons.append(clear_btn)
 
     def onButtonClick(self, text):
-        if hasattr(self.screenPtr, 'inputBox'):
-            self.screenPtr.inputBox.onChar(text)
+        if hasattr(self.screenPtr, 'allInputs'):
+            from mainUI import MainUI
+            MainUI.pinInput.onChar(text)
 
     def draw(self, screen):
         # Draw shadow for the background rectangle

@@ -18,6 +18,13 @@ class User:
         User.allUsers.append(self)
 
     @staticmethod
+    def removePhotos():
+        folder = "dataset/"+User.selectedUser.name
+        if os.path.exists(folder) and os.path.isdir(folder):
+            shutil.rmtree(folder)
+            print(f"Deleted photos of user {User.selectedUser.name} because no encodings.")
+
+    @staticmethod
     def loadUsers():
         # Load users from json file if it exists
         try:
@@ -66,7 +73,7 @@ class UserButton:
         # Render the user name on the button
         font = pygame.font.Font(None, 36)
         font2 = pygame.font.Font(None, 18)
-        self.text_surface = font.render(self.userName, True, (255, 255, 255))
+        self.text_surface = font.render(self.user.name, True, (255, 255, 255))
         self.text_rect = self.text_surface.get_rect(center=(self.button.rect.centerx, self.button.rect.centery))
         self.text_surface2 = None
         self.text_rect2 = None
@@ -98,6 +105,11 @@ class UserContainer:
         pass
 
     @staticmethod
+    def setActive(active):
+        for userButton in UserContainer.allUserButtons:
+            userButton.button.active = active
+    
+    @staticmethod
     def draw(screen):
         for userButton in UserContainer.allUserButtons:
             userButton.draw(screen)
@@ -106,6 +118,18 @@ class UserContainer:
     def reRenderButtons():
         for userButton in UserContainer.allUserButtons:
             userButton.renderText()
+
+    @staticmethod
+    def renameSelectedUser(newName):
+        oldName = User.selectedUser.name
+        if os.path.exists("dataset/"+oldName):
+            os.rename(oldName, newName)
+            print("Folder renamed.")
+        User.selectedUser.name = newName
+
+        UserContainer.reRenderButtons()
+        print(f"User renamed from {oldName} to {newName}.")
+        User.saveUsers()
 
     @staticmethod
     def addUserButton(user,screenPtr):

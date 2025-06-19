@@ -9,18 +9,27 @@ from training import Training
 from user import User, UserState, UserContainer
 from photoScreen import PhotoScreen
 from facerecognitionScreen import Facerecognition
+from keyBoard import Keyboard
 
 class MainUI:
+
+    pinInput = None
 
     addBtn = None
     removeBtn = None
     renameBtn = None
     makePhotos = None
     ignitionBtn = None
+    keyBoard = None
 
     photoNrLabel = None
     photoSubj = None
     checkBtn = None
+
+    oldNameLabel = None
+    oldNameInput = None
+    newNameLabel = None
+    newNameInput = None
 
     #### Initialize Screens and Buttons
     def initUI():
@@ -30,21 +39,27 @@ class MainUI:
         ## Pin Screen
         pinScreen = Screen("Pin",pinScreenUpdate)
         NumberPad((200, 100), (200, 300), pinScreen, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80))
-        InputBox((480, 100), (200, 50), pinScreen, maxChar=4, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80))
+        MainUI.pinInput = InputBox((480, 100), (200, 50), pinScreen, maxChar=4, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80))
         ## Main Screen
         backgroundImage = pygame.image.load("res/backround_image.jpg").convert_alpha()  # Load main screen background image
         mainScreen = Screen("Main",mainScreenUpdate,backgroundImage)
         Label("Users:", (100, 110), mainScreen, font_size=32, color=(255, 255, 255))
 
         MainUI.addBtn = Button("Add User", (520, 100), (200, 50), mainScreen, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
-        MainUI.addBtn.onClick = lambda: UserContainer.addUser()  # Add a new user when clicked
+        MainUI.addBtn.onClick = MainUI.makeAddHandler()
         MainUI.removeBtn = Button("Remove User", (520, 170), (200, 50), mainScreen, active=False, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
-        MainUI.removeBtn.onClick = lambda: UserContainer.removeUser(User.selectedUser)  # Remove selected user
+        MainUI.removeBtn.onClick = MainUI.makeRemoveHandler()
         MainUI.renameBtn = Button("Rename User", (520, 240), (200, 50), mainScreen, active=False, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
+        MainUI.renameBtn.onClick = MainUI.makeRenameHandler()
         MainUI.makePhotos = Button("Make Photos", (520, 310), (200, 50), mainScreen, active=False, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
         MainUI.makePhotos.onClick = MainUI.makePhotoClickHandler()
         MainUI.ignitionBtn = Button("FaceIgnition", (280, 310), (210, 50), mainScreen, font_size=32, color=(255, 255, 255), bg_color=(255, 150, 79))
         MainUI.ignitionBtn.onClick = MainUI.makeFaceIgnitionHandler()
+        MainUI.keyBoard = Keyboard(mainScreen,MainUI.onKeyboardKeyPress,(800,480))
+        MainUI.oldNameLabel = Label("Old username:",(300, 20),mainScreen,font_size=32, color=(255, 255, 255),visible=False)
+        MainUI.oldNameInput = InputBox((300, 60), (200, 40),mainScreen, maxChar=15, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80), visible=False)
+        MainUI.newNameLabel = Label("New username:",(300, 140),mainScreen,font_size=32, color=(255, 255, 255),visible=False)
+        MainUI.newNameInput = InputBox((300, 180), (200, 40),mainScreen, maxChar=15, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80), visible=False)
         
         # Init the user container
         for user in User.allUsers:
@@ -89,14 +104,32 @@ class MainUI:
             MainUI.renameBtn.setActive(True)
             MainUI.makePhotos.setActive(True)
 
+    def makeRemoveHandler():
+        def handler():
+            if MainUI.keyBoard.visible:
+                return
+            UserContainer.removeUser(User.selectedUser)  # Remove selected user
+        return handler
+
+    def makeAddHandler():
+        def handler():
+            if MainUI.keyBoard.visible:
+                return
+            UserContainer.addUser()  # Add a new user when clicked
+        return handler
+
     def makeUserClickHandler(button):
         def handler():
+            if MainUI.keyBoard.visible:
+                return
             button.userButtonClick()
             MainUI.UpdateLeftButtons()
         return handler
     
     def makePhotoClickHandler():
         def handler():
+            if MainUI.keyBoard.visible:
+                return
             Screen.setCurrentScreen("Photo")
             PhotoScreen.reset()
         return handler
@@ -116,7 +149,48 @@ class MainUI:
     
     def makeFaceIgnitionHandler():
         def handler():
+            if MainUI.keyBoard.visible:
+                return
             Screen.setCurrentScreen("FaceRec")
             Facerecognition.init()
         return handler
+    
+    def makeRenameHandler():
+        def handler():
+            if MainUI.keyBoard.visible:
+                return
+            MainUI.keyBoard.show()
+            MainUI.removeBtn.setActive(False)
+            MainUI.renameBtn.setActive(False)
+            MainUI.makePhotos.setActive(False)
+            MainUI.addBtn.setActive(False)
+            MainUI.ignitionBtn.setActive(False)
+            UserContainer.setActive(False)
+            MainUI.oldNameInput.setVisible(True)
+            MainUI.oldNameInput.text = User.selectedUser.name
+            MainUI.newNameInput.setVisible(True)
+            MainUI.newNameInput.text = User.selectedUser.name
+            MainUI.oldNameLabel.setVisible(True)
+            MainUI.newNameLabel.setVisible(True)
+        return handler
 
+    @staticmethod
+    def ActivateUI():
+        MainUI.removeBtn.setActive(True)
+        MainUI.renameBtn.setActive(True)
+        MainUI.makePhotos.setActive(True)
+        MainUI.addBtn.setActive(True)
+        MainUI.ignitionBtn.setActive(True)
+        UserContainer.setActive(True)
+        MainUI.oldNameInput.setVisible(False)
+        MainUI.newNameInput.setVisible(False)
+        MainUI.oldNameLabel.setVisible(False)
+        MainUI.newNameLabel.setVisible(False)
+
+    def onKeyboardKeyPress(key_label):
+        #print(key_label)
+        if key_label == "ERASE" and len(MainUI.newNameInput.text) > 0:
+            MainUI.newNameInput.text = MainUI.newNameInput.text[:-1]
+            return
+        if len(MainUI.newNameInput.text) < 15 and len(MainUI.newNameInput.text) > 0:
+            MainUI.newNameInput.text += key_label

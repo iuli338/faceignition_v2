@@ -1,13 +1,14 @@
 import pygame
 
 class InputBox:
-    def __init__(self, pos, size, screenPtr, maxChar = 4, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80)):
+    def __init__(self, pos, size, screenPtr, maxChar = 4, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80), visible=True):
         self.pos = pos
         self.size = size
         self.screenPtr = screenPtr
         self.maxChar = maxChar
         self.font_size = font_size
         self.color = color
+        self.visible = visible
         self.bg_color = bg_color
         self.hover_color = (120, 120, 120)
         self.curr_color = bg_color
@@ -15,8 +16,9 @@ class InputBox:
         self.rect = pygame.Rect(pos, size)
         self.text = ""
 
-        # Register this InputBox with the screen
-        screenPtr.inputBox = self
+        if not hasattr(screenPtr, 'allInputs'):
+            screenPtr.allInputs = []
+        screenPtr.allInputs.append(self)
 
     def onChar(self,char):
         if char == "<-":  # Handle backspace
@@ -26,7 +28,12 @@ class InputBox:
         if len(self.text) < self.maxChar:
             self.text += char
 
+    def setVisible(self,visible):
+        self.visible = visible
+
     def draw(self, screen):
+        if not self.visible:
+            return
         # Draw shadow for the background rectangle
         margin = 16
         shadow_offset = (6, 6)
