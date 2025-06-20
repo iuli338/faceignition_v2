@@ -20,6 +20,8 @@ class pygameScreen:
     screen = pygame.display.set_mode((800, 480))
 
 pygame.display.set_caption("FaceIgnition")
+appIcon = pygame.image.load('res/applogo.png')
+pygame.display.set_icon(appIcon)
 clock = pygame.time.Clock()
 Benchmark.CLOCK = clock
 

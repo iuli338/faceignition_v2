@@ -31,6 +31,10 @@ class MainUI:
     newNameLabel = None
     newNameInput = None
 
+    pinDelay = 1000
+    pinState = True
+    pinTimer = 0
+
     #### Initialize Screens and Buttons
     def initUI():
         ## Logo Screen
@@ -40,6 +44,7 @@ class MainUI:
         pinScreen = Screen("Pin",pinScreenUpdate)
         NumberPad((200, 100), (200, 300), pinScreen, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80))
         MainUI.pinInput = InputBox((480, 100), (200, 50), pinScreen, maxChar=4, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80))
+        Label("Insert PIN:", (200, 50), pinScreen, font_size=32, color=(255, 255, 255))
         ## Main Screen
         backgroundImage = pygame.image.load("res/backround_image.jpg").convert_alpha()  # Load main screen background image
         mainScreen = Screen("Main",mainScreenUpdate,backgroundImage)
@@ -58,8 +63,8 @@ class MainUI:
         MainUI.keyBoard = Keyboard(mainScreen,MainUI.onKeyboardKeyPress,(800,480))
         MainUI.oldNameLabel = Label("Old username:",(300, 20),mainScreen,font_size=32, color=(255, 255, 255),visible=False)
         MainUI.oldNameInput = InputBox((300, 60), (200, 40),mainScreen, maxChar=15, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80), visible=False)
-        MainUI.newNameLabel = Label("New username:",(300, 140),mainScreen,font_size=32, color=(255, 255, 255),visible=False)
-        MainUI.newNameInput = InputBox((300, 180), (200, 40),mainScreen, maxChar=15, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80), visible=False)
+        MainUI.newNameLabel = Label("New username:",(300, 130),mainScreen,font_size=32, color=(255, 255, 255),visible=False)
+        MainUI.newNameInput = InputBox((300, 170), (200, 40),mainScreen, maxChar=15, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80), visible=False)
         
         # Init the user container
         for user in User.allUsers:
@@ -192,5 +197,5 @@ class MainUI:
         if key_label == "ERASE" and len(MainUI.newNameInput.text) > 0:
             MainUI.newNameInput.text = MainUI.newNameInput.text[:-1]
             return
-        if len(MainUI.newNameInput.text) < 15 and len(MainUI.newNameInput.text) > 0:
+        if len(MainUI.newNameInput.text) < 15 and key_label != "ERASE":
             MainUI.newNameInput.text += key_label

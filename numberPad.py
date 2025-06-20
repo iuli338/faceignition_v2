@@ -2,6 +2,12 @@ import pygame
 from button import Button
 
 class NumberPad:
+
+    pinDelay = 1.0 # 1 Second delay
+    pinState = True
+    pinTimer = 0
+    clock = pygame.time.Clock()
+
     def __init__(self, pos, size, screenPtr, font_size=48, color=(255, 255, 255), bg_color=(80, 80, 80)):
         self.pos = pos
         self.size = size
@@ -64,6 +70,8 @@ class NumberPad:
     def onButtonClick(self, text):
         if hasattr(self.screenPtr, 'allInputs'):
             from mainUI import MainUI
+            if NumberPad.pinState == False:
+                return
             MainUI.pinInput.onChar(text)
 
     def draw(self, screen):

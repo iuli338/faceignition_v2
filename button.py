@@ -6,6 +6,8 @@ class Button:
 
     selectedButton = None
 
+    selectedBgColor = (239,81,130)
+
     def __init__(self, text, pos, size, screenPtr, active=True, font_size=48, color=(255, 255, 255), bg_color=(80 , 80, 80), onClick = None):
         self.text = text
         self.pos = pos
@@ -16,6 +18,7 @@ class Button:
         self.bg_color = bg_color
         self.curr_color = bg_color  # Current color for the button
         self.hover_color = pygame.Color(bg_color) + pygame.Color(40,40,40) # Slightly lighter color for hover effect
+        self.inactive_color = pygame.Color(bg_color) - pygame.Color(60, 60, 60)
         self.font = pygame.font.SysFont(None, self.font_size)
         self.rect = pygame.Rect(pos, size)
         self.renderText()
@@ -31,13 +34,12 @@ class Button:
     def setActive(self,state):
         self.active = state
         if (state):
-            self.changeColor((80 , 80, 80))
+            self.changeColor(self.bg_color)
             self.color = (255, 255, 255)
         else:
-            self.changeColor((40, 40, 40))
+            self.changeColor(self.inactive_color)
             self.color = (80, 80, 80)
         self.renderText()
-
 
     def onHover(self,event):
         if not self.visible:
@@ -70,8 +72,13 @@ class Button:
         pygame.draw.rect(screen, self.curr_color, self.rect, border_radius=10)
         screen.blit(self.text_surface, self.text_rect)
 
-    def changeColor(self,newColor):
+    def changeBgColor(self,newColor):
         self.bg_color = newColor
+        self.curr_color = newColor  # Current color for the button
+        self.hover_color = pygame.Color(newColor) + pygame.Color(40,40,40) # Slightly lighter color for hover effect
+        self.inactive_color = pygame.Color(self.bg_color) - pygame.Color(60, 60, 60)
+
+    def changeColor(self,newColor):
         self.curr_color = newColor  # Current color for the button
         self.hover_color = pygame.Color(newColor) + pygame.Color(40,40,40) # Slightly lighter color for hover effect
 
@@ -82,14 +89,14 @@ class Button:
                 # Change selected button
                 # Deselect the prev selected button
                 if Button.selectedButton != None:
-                    Button.selectedButton.changeColor((80,80,80))
+                    Button.selectedButton.changeBgColor(pygame.Color(80, 80, 80))
                 # Select the new button
                 Button.selectedButton = self
-                self.changeColor((239,81,130))
+                self.changeBgColor(Button.selectedBgColor)
             else:
-                self.changeColor((80,80,80))
+                self.changeBgColor(pygame.Color(80, 80, 80))
         else:
-            self.changeColor((80,80,80))
+            self.changeBgColor(pygame.Color(80, 80, 80))
 
     @staticmethod
     def userButtonUpdateColor():

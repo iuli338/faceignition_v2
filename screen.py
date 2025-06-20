@@ -126,12 +126,22 @@ PASS = "1234" # Placeholder for the PIN
 
 def pinScreenUpdate():
     from mainUI import MainUI
+    from numberPad import NumberPad
+    dt = NumberPad.clock.tick(60) / 1000.0  # 60 FPS target
+    if NumberPad.pinState == False:
+        NumberPad.pinTimer -= dt
+        if NumberPad.pinTimer <= 0:
+            NumberPad.pinState = True
+            MainUI.pinInput.text = ""
+        return
     if MainUI.pinInput.text == PASS:
         # If the PIN is correct, switch to the main screen
         Screen.setCurrentScreen("Main")
     elif len(MainUI.pinInput.text) == MainUI.pinInput.maxChar:
         # If the PIN is incorrect, reset the input box
-        MainUI.pinInput.text = ""
+        MainUI.pinInput.text = "Wrong!"
+        NumberPad.pinState = False
+        NumberPad.pinTimer = NumberPad.pinDelay
     pass
 
 def photoScreenUpdate():

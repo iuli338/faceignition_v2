@@ -77,12 +77,22 @@ class UserButton:
         self.text_rect = self.text_surface.get_rect(center=(self.button.rect.centerx, self.button.rect.centery))
         self.text_surface2 = None
         self.text_rect2 = None
+        self.text_surface3 = None
+        self.text_rect3 = None
+        text = ""
+        color = None
         if (self.user.state == UserState.HAS_PHOTOS):
-            self.text_surface2 = font2.render("Has photos", True, (255, 255, 255))
-            self.text_rect2 = self.text_surface2.get_rect(center=(self.button.rect.centerx, self.button.rect.centery + 18))
+            text = "Has photos"
+            color = (255, 255, 255)
         else:
-            self.text_surface2 = font2.render("No photos", True, (255, 0, 0))
-            self.text_rect2 = self.text_surface2.get_rect(center=(self.button.rect.centerx, self.button.rect.centery + 18))
+            text = "No photos"
+            color = (255, 0, 0)
+        
+        self.text_surface2 = font2.render(text, True, color)
+        self.text_rect2 = self.text_surface2.get_rect(center=(self.button.rect.centerx, self.button.rect.centery + 18))
+        self.text_surface3 = font2.render(text, True, (0,0,0))
+        self.text_rect3 = self.text_surface2.get_rect(center=(self.button.rect.centerx+2, self.button.rect.centery + 20))
+
 
     def draw(self, screen):
         # Ensure the button is initialized before drawing
@@ -93,6 +103,7 @@ class UserButton:
         
         # Draw the user state text if it exists
         if self.text_surface2 and self.text_rect2:
+            screen.blit(self.text_surface3, self.text_rect3)
             screen.blit(self.text_surface2, self.text_rect2)
 
 class UserContainer:
@@ -107,7 +118,7 @@ class UserContainer:
     @staticmethod
     def setActive(active):
         for userButton in UserContainer.allUserButtons:
-            userButton.button.active = active
+            userButton.button.setActive(active)
     
     @staticmethod
     def draw(screen):
