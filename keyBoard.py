@@ -47,22 +47,27 @@ class Keyboard:
                 if key.isalpha():
                     self.letter_buttons.append(btn)
 
-        # Add spacebar and erase
+        # Add spacebar, erase, and shift (all in one row)
         y = self.keyboard_top + (key_height + self.key_margin) * len(self.key_rows) + self.key_margin
+        shift_width = key_width * 2
         space_width = key_width * 5 + self.key_margin * 4
         erase_width = key_width * 2 + self.key_margin
 
-        space_x = (self.screen_width - space_width - erase_width - self.key_margin) // 2
-        erase_x = space_x + space_width + self.key_margin
+        total_width = shift_width + space_width + erase_width + self.key_margin * 2
+        x_start = (self.screen_width - total_width) // 2
 
+        # SHIFT key
+        shift_x = x_start
+        self.shift_button = Button("SHIFT", (shift_x, y), (shift_width, key_height), self.screenPtr, font_size=32, onClick=self.toggleCase)
+
+        # SPACE key
+        space_x = shift_x + shift_width + self.key_margin
         self.createKey("SPACE", (space_x, y), (space_width, key_height))
+
+        # ERASE key
+        erase_x = space_x + space_width + self.key_margin
         self.createKey("ERASE", (erase_x, y), (erase_width, key_height))
 
-        # Add Shift button
-        y += key_height + self.key_margin
-        shift_width = key_width * 2
-        shift_x = (self.screen_width - shift_width) // 2
-        self.shift_button = Button("SHIFT", (shift_x, y), (shift_width, key_height), self.screenPtr, font_size=32, onClick=self.toggleCase)
         self.buttons.append(self.shift_button)
 
         # Add Cancel and Rename buttons at the bottom center

@@ -6,7 +6,7 @@ from inputBox import InputBox
 from label import Label
 from screen import logoScreenUpdate, pinScreenUpdate, mainScreenUpdate
 from training import Training
-from user import User, UserState, UserContainer
+from user import User, UserContainer
 from photoScreen import PhotoScreen
 from facerecognitionScreen import Facerecognition
 from keyBoard import Keyboard
