@@ -134,7 +134,7 @@ class UserContainer:
     def renameSelectedUser(newName):
         oldName = User.selectedUser.name
         if os.path.exists("dataset/"+oldName):
-            os.rename(oldName, newName)
+            os.rename("dataset/"+oldName, "dataset/"+newName)
             print("Folder renamed.")
         User.selectedUser.name = newName
 
@@ -147,7 +147,7 @@ class UserContainer:
         if len(UserContainer.allUserButtons) < UserContainer.maxUsers:
             from button import Button
             from mainUI import MainUI
-            new_button = Button("", (100, 170 + len(UserContainer.allUserButtons) * 70), (150, 50), screenPtr, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
+            new_button = Button("", (80, 170 + len(UserContainer.allUserButtons) * 70), (200, 50), screenPtr, font_size=32, color=(255, 255, 255), bg_color=(80, 80, 80))
             new_button.onClick = MainUI.makeUserClickHandler(new_button)
             new_userButton = UserButton(user, new_button)
             UserContainer.allUserButtons.append(new_userButton)
@@ -180,6 +180,9 @@ class UserContainer:
 
     @staticmethod
     def removeUser(user):
+        if User.selectedUser is None:
+            print("No selected user.")
+            return
         from mainUI import MainUI
         for userButton in UserContainer.allUserButtons:
             if userButton.user == user:
@@ -192,18 +195,21 @@ class UserContainer:
                 # If the folder exists, clear it
                 if os.path.exists(user_folder):
                     shutil.rmtree(user_folder)
-                User.selectedUser = None
                 MainUI.UpdateLeftButtons()
                 print(f"User '{user.name}' removed.")
                 if len(UserContainer.allUserButtons) < UserContainer.maxUsers:
                     MainUI.addBtn.setActive(True)
                 # Update user buttons positions
                 for i, userButton in enumerate(UserContainer.allUserButtons):
-                    userButton.button.rect.topleft = (100, 170 + i * 70)
+                    userButton.button.rect.topleft = (80, 170 + i * 70)
                     userButton.renderText()
+                if User.selectedUser.state == UserState.HAS_PHOTOS:
+                    Screen.setCurrentScreen("Train")
                 from button import Button
+                from mainUI import MainUI
+                User.selectedUser = None
+                MainUI.UpdateLeftButtons()
                 Button.userButtonUpdateColor()
-                Screen.setCurrentScreen("Train")
                 User.saveUsers()
                 return
         print(f"User '{user.name}' not found.")

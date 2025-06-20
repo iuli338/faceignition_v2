@@ -1,13 +1,16 @@
 import cv2
 import time
 import threading
-import imutils
-import face_recognition
 import pickle
 import pygame
 import os
+from multiprocessing import Process, Queue, set_start_method
 
-pygame.font.init()
+# Prevent extra window on Windows when using multiprocessing
+try:
+    set_start_method('spawn')
+except RuntimeError:
+    pass
 
 class Facerecognition:
     currentname = None
@@ -19,18 +22,23 @@ class Facerecognition:
     ActivateTimer = 0.0
     BlockTimer = 0.0
     stop_event = threading.Event()
+    if not pygame.font.get_init():
+        pygame.font.init()
     font = pygame.font.Font(None, 36)
     clock = pygame.time.Clock()
     last_processed_frame = None
     processed_surface = None
     cap = None
+    frame_queue = Queue(maxsize=1)
+    result_queue = Queue()
+    recognition_process = None
 
     # Shared data between threads
     shared_data = {
-        "frame": None,         # Current camera frame (BGR)
-        "rgb_frame": None,     # Current RGB frame for recognition
-        "boxes": [],           # Detected face boxes
-        "names": [],           # Detected names
+        "frame": None,
+        "rgb_frame": None,
+        "boxes": [],
+        "names": [],
         "lock": threading.Lock(),
     }
 
@@ -38,99 +46,144 @@ class Facerecognition:
 
     def get_text_surface(name, font):
         if name not in Facerecognition.text_cache:
-            Facerecognition.text_cache[name] = font.render(name, True, (0, 255, 255))
-        return Facerecognition.text_cache[name]
+            Facerecognition.text_cache[name] = [None,None]
+            Facerecognition.text_cache[name][0] = font.render(name, True, (0, 255, 255))
+            Facerecognition.text_cache[name][1] = font.render(name, True, (0, 0, 0))
+        return (Facerecognition.text_cache[name][0],Facerecognition.text_cache[name][1])
 
     def startThreads():
-        # Start threads
-        Facerecognition.stop_event.clear()  # Clear stop flag
-        camera_thread = threading.Thread(target=Facerecognition.camera_feed_thread, daemon=True)
-        recognition_thread = threading.Thread(target=Facerecognition.face_recognition_thread,daemon=True)
-        camera_thread.start()
-        recognition_thread.start()
+        Facerecognition.stop_event.clear()
+        Facerecognition.camera_thread = threading.Thread(target=Facerecognition.camera_feed_thread, daemon=True)
+        Facerecognition.result_thread = threading.Thread(target=Facerecognition.result_receiver_thread, daemon=True)
+        Facerecognition.recognition_process = Process(target=Facerecognition.face_recognition_process, args=(Facerecognition.frame_queue, Facerecognition.result_queue))
+        Facerecognition.camera_thread.start()
+        Facerecognition.result_thread.start()
+        Facerecognition.recognition_process.start()
 
     def stopThreads():
-        Facerecognition.stop_event.set()  # Signal threads to stop
+        Facerecognition.stop_event.set()
+        if Facerecognition.camera_thread is not None:
+            Facerecognition.camera_thread.join()
+        if Facerecognition.result_thread is not None:
+            Facerecognition.result_thread.join()
+        if Facerecognition.recognition_process is not None:
+            Facerecognition.recognition_process.terminate()
+            Facerecognition.recognition_process.join()
+            Facerecognition.recognition_process = None
+        Facerecognition.started = False
+        if Facerecognition.cap is not None:
+            Facerecognition.cap.release()
+            Facerecognition.cap = None
 
     def init():
-        # Initialize 'currentname' to trigger only when a new person is identified.
-        Facerecognition.currentname = "unknown"
-        Facerecognition.encodingsP = "encodings.pickle"
+        if Facerecognition.started == False:
+            print("FaceDetection init.")
+            Facerecognition.currentname = "unknown"
+            Facerecognition.encodingsP = "encodings.pickle"
+            # Reset last processed frame & surface so no stale image shows
+            Facerecognition.last_processed_frame = None
+            Facerecognition.processed_surface = None
+            with Facerecognition.shared_data["lock"]:
+                Facerecognition.shared_data["names"] = []
+                Facerecognition.shared_data["boxes"] = []
+            print("[INFO] loading encodings + face detector...")
+            if os.path.exists(Facerecognition.encodingsP):
+                with open(Facerecognition.encodingsP, "rb") as f:
+                    Facerecognition.data = pickle.load(f)
+            else:
+                print("[WARN] Encodings file not found. No known faces loaded.")
+                Facerecognition.data = {
+                    "encodings": [],
+                    "names": []
+                }
 
-        # Load the known faces and embeddings along with the face detector
-        print("[INFO] loading encodings + face detector...")
-        if os.path.exists(Facerecognition.encodingsP):
-            with open(Facerecognition.encodingsP, "rb") as f:
-                Facerecognition.data = pickle.load(f)
-        else:
-            print("[WARN] Encodings file not found. No known faces loaded.")
-            Facerecognition.data = {
-                "encodings": [],
-                "names": []
-            }
-        
-        # Start the camera feed thread
-        
-        Facerecognition.startThreads()
+            Facerecognition.startThreads()
+            Facerecognition.started = True
 
     def camera_feed_thread():
-        if Facerecognition.cap is None or not Facerecognition.cap.isOpened():
-            Facerecognition.cap = cv2.VideoCapture(0)
         while not Facerecognition.stop_event.is_set():
+            # Attempt to (re)initialize the camera if needed
+            if Facerecognition.cap is None or not Facerecognition.cap.isOpened():
+                print("[INFO] Attempting to open camera...")
+                Facerecognition.cap = cv2.VideoCapture(0)
+                time.sleep(1)
+                continue
+
             ret, frame = Facerecognition.cap.read()
             if not ret or frame is None:
                 print("[WARN] Failed to grab frame.")
-                time.sleep(0.1)
+                Facerecognition.cap.release()
+                Facerecognition.cap = None
+                time.sleep(0.5)
                 continue
-
-            frame = imutils.resize(frame, width=480)
 
             with Facerecognition.shared_data["lock"]:
                 Facerecognition.shared_data["frame"] = frame.copy()
                 Facerecognition.shared_data["rgb_frame"] = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
+            if not Facerecognition.frame_queue.full():
+                try:
+                    Facerecognition.frame_queue.put_nowait(frame.copy())
+                except:
+                    pass
             time.sleep(0.01)
+
         if Facerecognition.cap is not None:
             Facerecognition.cap.release()
             Facerecognition.cap = None
 
-    def face_recognition_thread():
-        last_recognition_time = 0
-        recognition_interval = 0.1  # seconds between recognition attempts
+    def face_recognition_process(frame_queue, result_queue):
+        import cv2
+        import face_recognition
+        import pickle
+        import os
 
+        if os.path.exists("encodings.pickle"):
+            with open("encodings.pickle", "rb") as f:
+                data = pickle.load(f)
+        else:
+            data = {"encodings": [], "names": []}
+
+        while True:
+            try:
+                frame = frame_queue.get(timeout=1)
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                boxes = face_recognition.face_locations(rgb_frame)
+                encodings = face_recognition.face_encodings(rgb_frame, boxes)
+                names = []
+
+                for encoding in encodings:
+                    matches = face_recognition.compare_faces(data["encodings"], encoding)
+                    name = "Unknown"
+                    if True in matches:
+                        matchedIdxs = [i for i, b in enumerate(matches) if b]
+                        counts = {}
+                        for i in matchedIdxs:
+                            n = data["names"][i]
+                            counts[n] = counts.get(n, 0) + 1
+                        name = max(counts, key=counts.get)
+                    names.append(name)
+
+                result_queue.put((boxes, names))
+            except:
+                time.sleep(0.01)
+
+    def result_receiver_thread():
         while not Facerecognition.stop_event.is_set():
-            current_time = time.time()
-
-            # Only process every `recognition_interval` seconds
-            if current_time - last_recognition_time >= recognition_interval:
+            try:
+                boxes, names = Facerecognition.result_queue.get(timeout=1)
                 with Facerecognition.shared_data["lock"]:
-                    rgb_frame = Facerecognition.shared_data["rgb_frame"].copy() if Facerecognition.shared_data["rgb_frame"] is not None else None
+                    Facerecognition.shared_data["boxes"] = boxes
+                    Facerecognition.shared_data["names"] = names
+            except:
+                time.sleep(0.01)
 
-                if rgb_frame is not None:
-                    boxes = face_recognition.face_locations(rgb_frame)
-                    encodings = face_recognition.face_encodings(rgb_frame, boxes)
-                    names = []
-
-                    for encoding in encodings:
-                        matches = face_recognition.compare_faces(Facerecognition.data["encodings"], encoding)
-                        name = "Unknown"
-                        if True in matches:
-                            matchedIdxs = [i for i, b in enumerate(matches) if b]
-                            counts = {}
-                            for i in matchedIdxs:
-                                n = Facerecognition.data["names"][i]
-                                counts[n] = counts.get(n, 0) + 1
-                            name = max(counts, key=counts.get)
-
-                        names.append(name)
-
-                    with Facerecognition.shared_data["lock"]:
-                        Facerecognition.shared_data["boxes"] = boxes
-                        Facerecognition.shared_data["names"] = names
-
-                last_recognition_time = current_time
-
-            time.sleep(1)  # Prevent CPU spinning
+    def end():
+        Facerecognition.stopThreads()
+        Facerecognition.last_processed_frame = None
+        Facerecognition.processed_surface = None
+        Facerecognition.ActivateTimer = 0.0
+        Facerecognition.BlockTimer = 0.0
 
     def facerecognitionDraw(screen):
         with Facerecognition.shared_data["lock"]:
@@ -159,9 +212,8 @@ class Facerecognition:
 
                     resized_frame = cv2.resize(cropped_frame, (800, 480))
                     rgb_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
-                    frame_surface = pygame.surfarray.make_surface(rgb_frame.swapaxes(0, 1))  # Make sure axes are swapped
+                    frame_surface = pygame.surfarray.make_surface(rgb_frame.swapaxes(0, 1))
 
-                    # Save processed versions
                     Facerecognition.last_processed_frame = frame_ref
                     Facerecognition.processed_surface = frame_surface
 
@@ -171,45 +223,37 @@ class Facerecognition:
         else:
             Facerecognition.processed_surface = None
 
-        # Blit if surface is ready
         if Facerecognition.processed_surface is not None:
             screen.blit(Facerecognition.processed_surface, (0, 0))
+        else:
+            screen.fill((20,20,20))
 
-        # Overlay face names
         for ((top, right, bottom, left), name) in zip(boxes, names):
-            text_surface = Facerecognition.get_text_surface(name, Facerecognition.font)
-            screen.blit(text_surface, (800 - (right * 1.5), bottom - 100))
+            text_surface1 , text_surface2 = Facerecognition.get_text_surface(name, Facerecognition.font)
+            screen.blit(text_surface2, (left+2, top - text_surface2.get_height() - 3))
+            screen.blit(text_surface1, (left, top - text_surface1.get_height() - 5))
 
     def facerecognitionScreenUpdate():
-        delta_time = Facerecognition.clock.tick(60) / 1000.0  # Limit to 60 FPS, returns ms -> convert to seconds
+        delta_time = Facerecognition.clock.tick(60) / 1000.0
 
         with Facerecognition.shared_data["lock"]:
             names = Facerecognition.shared_data["names"]
 
-        # Timer logic for known and unknown users
         if any(name != "Unknown" for name in names):
             Facerecognition.ActivateTimer += delta_time
-            Facerecognition.BlockTimer = 0.0  # Reset intruder timer if known user detected
+            Facerecognition.BlockTimer = 0.0
             if Facerecognition.ActivateTimer >= Facerecognition.timeToActivate:
                 from screen import Screen
+                Facerecognition.end()
                 Screen.setCurrentScreen("Drive Safe")
-                Facerecognition.stopThreads()
-                Facerecognition.last_processed_frame = None
-                Facerecognition.processed_surface = None
-                Facerecognition.ActivateTimer = 0.0
-                Facerecognition.BlockTimer = 0.0
                 return
         elif any(name == "Unknown" for name in names) and len(names) > 0:
             Facerecognition.ActivateTimer = 0.0
             Facerecognition.BlockTimer += delta_time
             if Facerecognition.BlockTimer >= Facerecognition.timeToBlock:
                 from screen import Screen
+                Facerecognition.end()
                 Screen.setCurrentScreen("Intruder")
-                Facerecognition.stopThreads()
-                Facerecognition.last_processed_frame = None
-                Facerecognition.processed_surface = None
-                Facerecognition.ActivateTimer = 0.0
-                Facerecognition.BlockTimer = 0.0
                 return
         else:
             Facerecognition.ActivateTimer = 0.0

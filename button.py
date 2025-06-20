@@ -124,13 +124,13 @@ class Button:
             button.onHover(event)
 
 class IconButton():
-    def __init__(self, icon_path, pos, screenPtr, visible = True, onClick=None):
+    def __init__(self, icon_path, pos, screenPtr, visible = True, onClick=None, active=True):
         self.icon = pygame.image.load(icon_path).convert_alpha()
         self.saved_icon = self.icon.copy()
         self.rect = pygame.Rect(pos, self.icon.get_size())
         self.screenPtr = screenPtr
         self.onClick = onClick
-        self.active = True  # Icon buttons are active by default
+        self.active = active
         self.visible = visible  # Icon buttons are visible by default
 
         if not hasattr(self.screenPtr, 'allIconButtons'):
@@ -139,10 +139,12 @@ class IconButton():
 
         # Make the icon lighter on hover by creating a lighter surface
         self.lighter_icon = self.icon.copy()
-        self.lighter_icon.fill((30, 30, 30, 0), special_flags=pygame.BLEND_RGBA_ADD)
+        self.lighter_icon.fill((50, 50, 50, 0), special_flags=pygame.BLEND_RGBA_ADD)
         self.icon_hover = self.lighter_icon
 
     def onHover(self, event):
+        if not self.active:
+            return
         if self.rect.collidepoint(event.pos):
             self.icon = self.icon_hover
         else:
@@ -155,6 +157,9 @@ class IconButton():
 
     def setVisible(self,state):
         self.visible = state
+
+    def setActive(self,active):
+        self.active = active
 
     @staticmethod
     def onMouseButtonDown(event):

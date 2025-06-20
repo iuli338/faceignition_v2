@@ -9,10 +9,10 @@ class Screen:
 
     logoTime = 1.0 # Duration for the logo screen in seconds
 
-    def __init__(self, name, updateFunction=None, background_image=None):
+    def __init__(self, name, updateFunction=None, background_image=None, background_color=(40, 40, 40)):
         self.name = name
         self.allButtons = []
-        self.background_color = (40, 40, 40)
+        self.background_color = background_color
         self.updateFunction = updateFunction  # Function to call for updates, if any
         self.background_image = background_image  # Optional background image
         Screen.allScreens.append(self)
@@ -79,13 +79,24 @@ class Screen:
                     continue
                 inputBox.draw(screen)
 
-        # Draw label if it exists
+        # Special draw for FaceRec screen
+        if Screen.currentScreen.name == "FaceRec":
+            from facerecognitionScreen import Facerecognition
+            Facerecognition.facerecognitionDraw(screen)
+            
+        # Draw labels if they exist
         if hasattr(Screen.currentScreen, 'allLabels'):
             from mainUI import MainUI
             for label in Screen.currentScreen.allLabels:
                 if label == MainUI.oldNameLabel or label == MainUI.newNameLabel:
                     continue
                 label.draw(screen)
+
+        # Draw iconImages if they exist
+        if hasattr(Screen.currentScreen, 'allIconImages'):
+            from mainUI import MainUI
+            for iconImg in Screen.currentScreen.allIconImages:
+                iconImg.draw(screen)
 
         # Draw all buttons on the current screen
         for button in Screen.currentScreen.allButtons:
@@ -98,10 +109,6 @@ class Screen:
         if Screen.currentScreen.name == "Main":
            UserContainer.draw(screen)
 
-        # Special draw for FaceRec screen
-        if Screen.currentScreen.name == "FaceRec":
-            from facerecognitionScreen import Facerecognition
-            Facerecognition.facerecognitionDraw(screen)
 
         if hasattr(Screen.currentScreen, 'allIconButtons'):
             for iconButton in Screen.currentScreen.allIconButtons:

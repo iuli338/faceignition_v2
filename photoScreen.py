@@ -11,41 +11,56 @@ class PhotoScreen:
     photos = []  # List to store captured photos
     initialized = False
 
+    @staticmethod
     def init():
-        PhotoScreen.webcam_recorder = cv2.VideoCapture(0)
-        PhotoScreen.noWebCamImage = pygame.image.load("res/nowebcam.png").convert_alpha()  # Load no webcam image
+        # Do NOT open the camera here — just load image and reset vars
+        PhotoScreen.webcam_recorder = None
+        PhotoScreen.noWebCamImage = pygame.image.load("res/nowebcam.png").convert_alpha()
+        PhotoScreen.frame = None
+        PhotoScreen.photos = []
+        PhotoScreen.initialized = False
+
+    @staticmethod
+    def open_camera():
+        if PhotoScreen.webcam_recorder is None or not PhotoScreen.webcam_recorder.isOpened():
+            print("[PhotoScreen] Opening webcam...")
+            PhotoScreen.webcam_recorder = cv2.VideoCapture(0)
+            time.sleep(1)  # Give some time to initialize
+
+    @staticmethod
+    def close_camera():
+        if PhotoScreen.webcam_recorder is not None:
+            print("[PhotoScreen] Closing webcam...")
+            PhotoScreen.webcam_recorder.release()
+            PhotoScreen.webcam_recorder = None
 
     @staticmethod
     def reset():
-        PhotoScreen.photos = []  # Reset the list of photos
+        PhotoScreen.photos = []
         from mainUI import MainUI
         from user import User
-        MainUI.photoNrLabel.updateText("Photos taken: 0")  # Reset the photo count label
+        MainUI.photoNrLabel.updateText("Photos taken: 0")
         MainUI.photoSubj.updateText(f"Making photos for: {User.selectedUser.name}")
         MainUI.checkBtn.setVisible(False)
         from button import IconButton
-        IconButton.onMouseMotion(None)  # Update hover state after click
-    
+        IconButton.onMouseMotion(None)
+
     @staticmethod
     def photoScreenUpdate():
-        # Ensure webcam is opened
+        # Lazy open the camera only if needed
         if PhotoScreen.webcam_recorder is None or not PhotoScreen.webcam_recorder.isOpened():
-            print("Attempting to open webcam...")
-            PhotoScreen.webcam_recorder = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-            if not PhotoScreen.webcam_recorder.isOpened():
-                print("Failed to open webcam. Retrying in 1 second...")
-                PhotoScreen.webcam_recorder.release()
-                PhotoScreen.webcam_recorder = None
+            PhotoScreen.open_camera()
+            if PhotoScreen.webcam_recorder is None or not PhotoScreen.webcam_recorder.isOpened():
+                print("[PhotoScreen] Failed to open webcam. Showing placeholder image.")
+                PhotoScreen.frame = PhotoScreen.noWebCamImage
                 time.sleep(1)
                 return
 
-        # Try reading a frame
         ret, frame = PhotoScreen.webcam_recorder.read()
 
         if not ret or frame is None or frame.size == 0:
-            print("Webcam read failed. Restarting webcam...")
-            PhotoScreen.webcam_recorder.release()
-            PhotoScreen.webcam_recorder = None
+            print("[PhotoScreen] Webcam read failed. Restarting webcam...")
+            PhotoScreen.close_camera()
             time.sleep(1)
             return
 
@@ -69,22 +84,21 @@ class PhotoScreen:
             PhotoScreen.frame = pygame.surfarray.make_surface(rgb_frame.swapaxes(0, 1))
 
         except Exception as e:
-            print(f"Error processing frame: {e}")
-            PhotoScreen.frame = None
+            print(f"[PhotoScreen] Error processing frame: {e}")
+            PhotoScreen.frame = PhotoScreen.noWebCamImage
 
-        time.sleep(0.01)  # Sleep to reduce CPU usage
-        
-        if (PhotoScreen.initialized is False):
+        time.sleep(0.01)
+
+        if not PhotoScreen.initialized:
             PhotoScreen.initialized = True
-    
+
     @staticmethod
     def makePhoto():
-        # Take the current frame and save it in a list, later used to save the photos
         if PhotoScreen.frame is not None:
             PhotoScreen.photos.append(PhotoScreen.frame)
             from mainUI import MainUI
             MainUI.photoNrLabel.updateText(f"Photos taken: {len(PhotoScreen.photos)}")
-            if (len(PhotoScreen.photos) >= 5):
+            if len(PhotoScreen.photos) >= 5:
                 MainUI.checkBtn.setVisible(True)
 
     @staticmethod
@@ -92,16 +106,19 @@ class PhotoScreen:
         from user import User
         user_folder = os.path.join("dataset", User.selectedUser.name)
 
-        # If the folder exists, clear it
         if os.path.exists(user_folder):
             shutil.rmtree(user_folder)
         os.makedirs(user_folder, exist_ok=True)
 
         for idx, photo_surface in enumerate(PhotoScreen.photos, start=1):
-            # Convert pygame surface to numpy array and then to BGR for OpenCV
             photo_array = pygame.surfarray.array3d(photo_surface).swapaxes(0, 1)
             photo_bgr = cv2.cvtColor(photo_array, cv2.COLOR_RGB2BGR)
             image_path = os.path.join(user_folder, f"image{idx}.jpg")
             cv2.imwrite(image_path, photo_bgr)
-        
-        print(f"Photos of user {User.selectedUser.name} saved to dataset/{User.selectedUser.name}.")
+
+        print(f"[PhotoScreen] Photos of user {User.selectedUser.name} saved to dataset/{User.selectedUser.name}.")
+
+    @staticmethod
+    def shutdown():
+        # Call this when leaving photo screen or quitting app
+        PhotoScreen.close_camera()

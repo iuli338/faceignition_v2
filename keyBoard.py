@@ -128,7 +128,12 @@ class Keyboard:
         self.hide()
         MainUI.ActivateUI()
         from screen import Screen
-        Screen.setCurrentScreen("Train")
+        from user import User, UserState
+        if User.selectedUser.state == UserState.HAS_PHOTOS:
+            print("Retrain because user has photos.")
+            Screen.setCurrentScreen("Train")
+        else:
+            print("No retrain because no photos.")
 
     def cancelRename(self):
         print("Canceled rename.")
